@@ -99,7 +99,9 @@ public class ProcessQueue {
                 try {
                     // 存在待处理的消息
                     // 且offset最小的消息消费时间大于consumeTimeout() * 60 * 1000（默认15分钟）
-                    if (!msgTreeMap.isEmpty() && System.currentTimeMillis() - Long.parseLong(MessageAccessor.getConsumeStartTimeStamp(msgTreeMap.firstEntry().getValue())) > pushConsumer.getConsumeTimeout() * 60 * 1000) {
+                    if (!msgTreeMap.isEmpty() && System.currentTimeMillis() - Long.parseLong(MessageAccessor.getConsumeStartTimeStamp(
+                            msgTreeMap.firstEntry().getValue()))
+                            > pushConsumer.getConsumeTimeout() * 60 * 1000) {
                         msg = msgTreeMap.firstEntry().getValue();
                     } else {
 

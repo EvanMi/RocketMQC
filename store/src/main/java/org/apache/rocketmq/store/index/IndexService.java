@@ -66,8 +66,7 @@ public class IndexService {
                     f.load();
 
                     if (!lastExitOK) {
-                        if (f.getEndTimestamp() > this.defaultMessageStore.getStoreCheckpoint()
-                            .getIndexMsgTimestamp()) {
+                        if (f.getEndTimestamp() > this.defaultMessageStore.getStoreCheckpoint().getIndexMsgTimestamp()) {
                             f.destroy(0);
                             continue;
                         }
@@ -201,6 +200,7 @@ public class IndexService {
     public void buildIndex(DispatchRequest req) {
         //创建IndexFile并开启后台线程刷新IndexFile
         IndexFile indexFile = retryGetAndCreateIndexFile();
+
         if (indexFile != null) {
             long endPhyOffset = indexFile.getEndPhyOffset();
             DispatchRequest msg = req;
@@ -316,6 +316,7 @@ public class IndexService {
 
         if (indexFile == null) {
             try {
+                // TODO: 2024/1/2 加锁的范围是否要扩大，不怕重复添加吗
                 String fileName =
                     this.storePath + File.separator
                         + UtilAll.timeMillisToHumanString(System.currentTimeMillis());

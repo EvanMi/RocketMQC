@@ -43,7 +43,7 @@ public class RemotingCommand {
     private static final int RPC_ONEWAY = 1; // 0, RPC
     private static final Map<Class<? extends CommandCustomHeader>, Field[]> CLASS_HASH_MAP =
         new HashMap<Class<? extends CommandCustomHeader>, Field[]>();
-    private static final Map<Class, String> CANONICAL_NAME_CACHE = new HashMap<Class, String>();
+    private static final Map<Class<?>, String> CANONICAL_NAME_CACHE = new HashMap<>();
     // 1, Oneway
     // 1, RESPONSE_COMMAND
     private static final Map<Field, Boolean> NULLABLE_FIELD_CACHE = new HashMap<Field, Boolean>();
@@ -234,9 +234,9 @@ public class RemotingCommand {
         this.customHeader = customHeader;
     }
 
-    public CommandCustomHeader decodeCommandCustomHeader(
-        Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
-        CommandCustomHeader objectHeader;
+    public <T extends CommandCustomHeader> T decodeCommandCustomHeader(
+        Class<T> classHeader) throws RemotingCommandException {
+        T objectHeader;
         try {
             objectHeader = classHeader.newInstance();
         } catch (InstantiationException e) {

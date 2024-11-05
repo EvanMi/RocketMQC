@@ -15,7 +15,7 @@ public class ConsumerTest {
     public static void main(String[] args) throws Exception {
         String namesrvAddr = "127.0.0.1:9876";
         String group = "test_consumer_group";
-        String topic = "test_hello_rocketmq";
+        String topic = "user-click";
         // 初始化consumer
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer();
         consumer.setNamesrvAddr(namesrvAddr);

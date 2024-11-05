@@ -188,7 +188,9 @@ public class BrokerController {
         this.consumerFilterManager = new ConsumerFilterManager(this);
         this.producerManager = new ProducerManager();
         this.clientHousekeepingService = new ClientHousekeepingService(this);
+        //broker调用client进行信息查询
         this.broker2Client = new Broker2Client(this);
+        //group订阅信息
         this.subscriptionGroupManager = new SubscriptionGroupManager(this);
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
         this.filterServerManager = new FilterServerManager(this);
@@ -207,6 +209,7 @@ public class BrokerController {
         this.brokerStatsManager = new BrokerStatsManager(this.brokerConfig.getBrokerClusterName());
         this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), this.getNettyServerConfig().getListenPort()));
 
+        //快速失败
         this.brokerFastFailure = new BrokerFastFailure(this);
         this.configuration = new Configuration(
             log,
@@ -266,6 +269,7 @@ public class BrokerController {
             this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
             NettyServerConfig fastConfig = (NettyServerConfig) this.nettyServerConfig.clone();
             fastConfig.setListenPort(nettyServerConfig.getListenPort() - 2);
+            //快速通道
             this.fastRemotingServer = new NettyRemotingServer(fastConfig, this.clientHousekeepingService);
             this.sendMessageExecutor = new BrokerFixedThreadPoolExecutor(
                 this.brokerConfig.getSendMessageThreadPoolNums(),
@@ -331,8 +335,10 @@ public class BrokerController {
                 Executors.newFixedThreadPool(this.brokerConfig.getConsumerManageThreadPoolNums(), new ThreadFactoryImpl(
                     "ConsumerManageThread_"));
 
+            //todo 有优化的空间
             this.registerProcessor();
 
+            // 0点开始，每天统计一次broker stats
             final long initialDelay = UtilAll.computeNextMorningTimeMillis() - System.currentTimeMillis();
             final long period = 1000 * 60 * 60 * 24;
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -346,6 +352,7 @@ public class BrokerController {
                 }
             }, initialDelay, period, TimeUnit.MILLISECONDS);
 
+            //持久化消费的offset
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
@@ -357,6 +364,7 @@ public class BrokerController {
                 }
             }, 1000 * 10, this.brokerConfig.getFlushConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
 
+            //每10秒，持久化过滤信息
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
@@ -367,7 +375,7 @@ public class BrokerController {
                     }
                 }
             }, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);
-
+            //每3分钟，如果开启了移除消费很慢的group配置，直接进行移除
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
@@ -378,7 +386,7 @@ public class BrokerController {
                     }
                 }
             }, 3, 3, TimeUnit.MINUTES);
-
+            //每隔一秒打印一下当前的各队列的情况
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
@@ -390,6 +398,7 @@ public class BrokerController {
                 }
             }, 10, 1, TimeUnit.SECONDS);
 
+            //一分钟一次，打印分发落后byte数
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
                 @Override
@@ -406,6 +415,7 @@ public class BrokerController {
                 this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());
                 log.info("Set user specified name server address: {}", this.brokerConfig.getNamesrvAddr());
             } else if (this.brokerConfig.isFetchNamesrvAddrByAddressServer()) {
+                //远程拉取name server信息
                 this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
                     @Override
@@ -1169,6 +1179,7 @@ public class BrokerController {
         messageStoreConfig.setBrokerRole(BrokerRole.SLAVE);
 
         //handle the scheduled service
+        //关闭延时消息处理
         try {
             this.messageStore.handleScheduleMessageService(BrokerRole.SLAVE);
         } catch (Throwable t) {
@@ -1176,6 +1187,7 @@ public class BrokerController {
         }
 
         //handle the transactional service
+        //关闭事务消息处理
         try {
             this.shutdownProcessorByHa();
         } catch (Throwable t) {

@@ -23,5 +23,11 @@ import org.apache.rocketmq.common.message.Message;
  */
 @Deprecated
 public interface LocalTransactionExecuter {
+    /**
+     * 执行本地事务分支
+     * @param msg 消息对象
+     * @param arg 参数对象
+     * @return 本地事务状态
+     */
     LocalTransactionState executeLocalTransactionBranch(final Message msg, final Object arg);
 }

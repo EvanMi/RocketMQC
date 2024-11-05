@@ -48,7 +48,7 @@ public class NamesrvStartup {
     private static CommandLine commandLine = null;
 
     public static void main(String[] args) {
-        System.setProperty(MixAll.ROCKETMQ_HOME_PROPERTY, "/Users/mipengcheng3/works/rocketmq");
+        System.setProperty(MixAll.ROCKETMQ_HOME_PROPERTY, "/Users/mipengcheng3/works/rocketmq-data");
         main0(args);
     }
 

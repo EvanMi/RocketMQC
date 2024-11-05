@@ -62,7 +62,8 @@ public abstract class RebalanceImpl {
     }
 
     public void unlock(final MessageQueue mq, final boolean oneway) {
-        FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
+        FindBrokerResult findBrokerResult = this.mQClientFactory
+                .findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
         if (findBrokerResult != null) {
             UnlockBatchRequestBody requestBody = new UnlockBatchRequestBody();
             requestBody.setConsumerGroup(this.consumerGroup);
@@ -70,7 +71,8 @@ public abstract class RebalanceImpl {
             requestBody.getMqSet().add(mq);
 
             try {
-                this.mQClientFactory.getMQClientAPIImpl().unlockBatchMQ(findBrokerResult.getBrokerAddr(), requestBody, 1000, oneway);
+                this.mQClientFactory.getMQClientAPIImpl()
+                        .unlockBatchMQ(findBrokerResult.getBrokerAddr(), requestBody, 1000, oneway);
                 log.warn("unlock messageQueue. group:{}, clientId:{}, mq:{}",
                     this.consumerGroup,
                     this.mQClientFactory.getClientId(),
@@ -91,7 +93,8 @@ public abstract class RebalanceImpl {
             if (mqs.isEmpty())
                 continue;
 
-            FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, true);
+            FindBrokerResult findBrokerResult = this.mQClientFactory
+                    .findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, true);
             if (findBrokerResult != null) {
                 UnlockBatchRequestBody requestBody = new UnlockBatchRequestBody();
                 requestBody.setConsumerGroup(this.consumerGroup);
@@ -131,7 +134,8 @@ public abstract class RebalanceImpl {
     }
 
     public boolean lock(final MessageQueue mq) {
-        FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
+        FindBrokerResult findBrokerResult = this.mQClientFactory
+                .findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
         if (findBrokerResult != null) {
             LockBatchRequestBody requestBody = new LockBatchRequestBody();
             requestBody.setConsumerGroup(this.consumerGroup);

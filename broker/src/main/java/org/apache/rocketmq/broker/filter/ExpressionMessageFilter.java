@@ -80,6 +80,7 @@ public class ExpressionMessageFilter implements MessageFilter {
 
             return subscriptionData.getCodeSet().contains(tagsCode.intValue());
         } else {
+            //每个消息有一个布隆过滤器，然后过滤器有自己的bit位，去消息中看看自己是不是匹配
             // no expression or no bloom
             if (consumerFilterData == null || consumerFilterData.getExpression() == null
                 || consumerFilterData.getCompiledExpression() == null || consumerFilterData.getBloomFilterData() == null) {

@@ -159,6 +159,7 @@ public class RemotingHelper {
         final String addr = remote != null ? remote.toString() : "";
 
         if (addr.length() > 0) {
+            //用来处理unix套接字
             int index = addr.lastIndexOf("/");
             if (index >= 0) {
                 return addr.substring(index + 1);

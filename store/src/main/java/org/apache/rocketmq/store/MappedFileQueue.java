@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -78,6 +79,7 @@ public class MappedFileQueue {
         }
     }
 
+    //查询在指定时间戳之后依然有更新的文件
     public MappedFile getMappedFileByTime(final long timestamp) {
         Object[] mfs = this.copyMappedFiles(0);
 
@@ -105,6 +107,11 @@ public class MappedFileQueue {
         return mfs;
     }
 
+    /**
+     *       file1        file2         file3           file4       file5
+     *  [from, tail], [from, tail], [from, tail], [from, tail], [from, tail]
+     *                                 offset
+     */
     public void truncateDirtyFiles(long offset) {
         List<MappedFile> willRemoveFiles = new ArrayList<MappedFile>();
 
@@ -167,7 +174,7 @@ public class MappedFileQueue {
 
                 try {
                     MappedFile mappedFile = new MappedFile(file.getPath(), mappedFileSize);
-
+                    //load完成的时候，默认标记所有的文件都是已经写满的
                     mappedFile.setWrotePosition(this.mappedFileSize);
                     mappedFile.setFlushedPosition(this.mappedFileSize);
                     mappedFile.setCommittedPosition(this.mappedFileSize);
@@ -287,6 +294,7 @@ public class MappedFileQueue {
                 mappedFileLast.setCommittedPosition(where);
                 break;
             } else {
+                // TODO: 2023/12/19 不支持移除元素
                 iterator.remove();
             }
         }
@@ -295,13 +303,14 @@ public class MappedFileQueue {
 
     public long getMinOffset() {
 
-        if (!this.mappedFiles.isEmpty()) {
+        while (!this.mappedFiles.isEmpty()) {
             try {
                 return this.mappedFiles.get(0).getFileFromOffset();
             } catch (IndexOutOfBoundsException e) {
                 //continue;
             } catch (Exception e) {
                 log.error("getMinOffset has exception.", e);
+                break;
             }
         }
         return -1;
@@ -341,7 +350,10 @@ public class MappedFileQueue {
         }
     }
 
-    public int deleteExpiredFileByTime(final long expiredTime,
+    public int deleteExpiredFileByTime(
+            //过期时间
+            final long expiredTime,
+        //删除文件之间休眠时间
         final int deleteFilesInterval,
         final long intervalForcibly,
         final boolean cleanImmediately) {
@@ -350,10 +362,12 @@ public class MappedFileQueue {
         if (null == mfs)
             return 0;
 
+        //最后一个文件肯定是在用的不删除
         int mfsLength = mfs.length - 1;
         int deleteCount = 0;
         List<MappedFile> files = new ArrayList<MappedFile>();
         if (null != mfs) {
+            // TODO: 2023/12/20 没有必要的判断 
             for (int i = 0; i < mfsLength; i++) {
                 MappedFile mappedFile = (MappedFile) mfs[i];
                 long liveMaxTimestamp = mappedFile.getLastModifiedTimestamp() + expiredTime;
@@ -370,6 +384,7 @@ public class MappedFileQueue {
                             try {
                                 Thread.sleep(deleteFilesInterval);
                             } catch (InterruptedException e) {
+                                //noop
                             }
                         }
                     } else {
@@ -430,6 +445,11 @@ public class MappedFileQueue {
         return deleteCount;
     }
 
+    /**
+     * 刷盘
+     * @param flushLeastPages 大于多少页刷盘
+     * @return 是否没有需要刷盘的内容了
+     */
     public boolean flush(final int flushLeastPages) {
         boolean result = true;
         MappedFile mappedFile = this.findMappedFileByOffset(this.flushedWhere, this.flushedWhere == 0);
@@ -447,6 +467,9 @@ public class MappedFileQueue {
         return result;
     }
 
+    /**
+     * 返回的结果为true代表没有需要进行commit的内容了
+     * */
     public boolean commit(final int commitLeastPages) {
         boolean result = true;
         MappedFile mappedFile = this.findMappedFileByOffset(this.committedWhere, this.committedWhere == 0);
@@ -513,7 +536,7 @@ public class MappedFileQueue {
 
     public MappedFile getFirstMappedFile() {
         MappedFile mappedFileFirst = null;
-
+        // TODO: 2023/12/20 是否改成while
         if (!this.mappedFiles.isEmpty()) {
             try {
                 mappedFileFirst = this.mappedFiles.get(0);
@@ -554,9 +577,8 @@ public class MappedFileQueue {
                 boolean result = mappedFile.destroy(intervalForcibly);
                 if (result) {
                     log.info("the mappedFile re delete OK, " + mappedFile.getFileName());
-                    List<MappedFile> tmpFiles = new ArrayList<MappedFile>();
-                    tmpFiles.add(mappedFile);
-                    this.deleteExpiredFile(tmpFiles);
+                    // TODO: 2023/12/20 use more lightweight collection
+                    this.deleteExpiredFile(Collections.singletonList(mappedFile));
                 } else {
                     log.warn("the mappedFile re delete failed, " + mappedFile.getFileName());
                 }

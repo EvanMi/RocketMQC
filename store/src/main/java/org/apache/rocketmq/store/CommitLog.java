@@ -111,7 +111,7 @@ public class CommitLog {
 
     public void start() {
         this.flushCommitLogService.start();
-
+        //只有开启pool，才会有commit一说
         if (defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
             this.commitLogService.start();
         }
@@ -221,6 +221,7 @@ public class CommitLog {
             processOffset += mappedFileOffset;
             this.mappedFileQueue.setFlushedWhere(processOffset);
             this.mappedFileQueue.setCommittedWhere(processOffset);
+            //在这里设置了最新的一个要用的mappedFile的各种position
             this.mappedFileQueue.truncateDirtyFiles(processOffset);
 
             // Clear ConsumeQueue redundant data
@@ -579,6 +580,7 @@ public class CommitLog {
         int queueId = msg.getQueueId();
 
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
+        // 不是事务消息 或者 是已经提交的事务消息
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
                 || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
             // Delay Delivery
@@ -618,7 +620,7 @@ public class CommitLog {
             }
             if (null == mappedFile) {
                 log.error("create mapped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
-                beginTimeInLock = 0;
+                this.beginTimeInLock = 0;
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null));
             }
 // 这里处理
@@ -660,6 +662,7 @@ public class CommitLog {
             log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", elapsedTimeInLock, msg.getBody().length, result);
         }
 
+        //解锁mappedFile所对应的内存
         if (null != unlockMappedFile && this.defaultMessageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
             this.defaultMessageStore.unlockMappedFile(unlockMappedFile);
         }
@@ -672,6 +675,7 @@ public class CommitLog {
 
         CompletableFuture<PutMessageStatus> flushResultFuture = submitFlushRequest(result, msg);
         CompletableFuture<PutMessageStatus> replicaResultFuture = submitReplicaRequest(result, msg);
+
         return flushResultFuture.thenCombine(replicaResultFuture, (flushStatus, replicaStatus) -> {
             if (flushStatus != PutMessageStatus.PUT_OK) {
                 putMessageResult.setPutMessageStatus(flushStatus);
@@ -695,9 +699,11 @@ public class CommitLog {
 
         final int tranType = MessageSysFlag.getTransactionValue(messageExtBatch.getSysFlag());
 
+        //批量只支持非事务
         if (tranType != MessageSysFlag.TRANSACTION_NOT_TYPE) {
             return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null));
         }
+        //批量不支持延迟消息
         if (messageExtBatch.getDelayTimeLevel() > 0) {
             return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null));
         }
@@ -1151,6 +1157,7 @@ public class CommitLog {
             if (null != result) {
                 try {
                     int sysFlag = result.getByteBuffer().getInt(MessageDecoder.SYSFLAG_POSITION);
+                    //ipv4 8位 | ipv6 20位
                     int bornhostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
                     int msgStoreTimePos = 4 + 4 + 4 + 4 + 4 + 8 + 8 + 4 + 8 + bornhostLength;
                     return result.getByteBuffer().getLong(msgStoreTimePos);
@@ -1186,6 +1193,7 @@ public class CommitLog {
         return null;
     }
 
+    //返回的值一定是下一个文件的开始offset
     public long rollNextFile(final long offset) {
         int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
         return offset + mappedFileSize - offset % mappedFileSize;

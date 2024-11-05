@@ -78,9 +78,11 @@ public class HAService {
     }
 
     public boolean isSlaveOK(final long masterPutWhere) {
+        //有slave
         boolean result = this.connectionCount.get() > 0;
         result =
             result
+                    //slave落后的没有超过规定
                 && ((masterPutWhere - this.push2SlaveMaxOffset.get()) < this.defaultMessageStore
                 .getMessageStoreConfig().getHaSlaveFallbehindMax());
         return result;
@@ -334,6 +336,7 @@ public class HAService {
 
         private long currentReportedOffset = 0;
         private int dispatchPosition = 0;
+        //4M
         private ByteBuffer byteBufferRead = ByteBuffer.allocate(READ_MAX_BUFFER_SIZE);
         private ByteBuffer byteBufferBackup = ByteBuffer.allocate(READ_MAX_BUFFER_SIZE);
 
@@ -366,6 +369,7 @@ public class HAService {
             this.reportOffset.limit(8);
 
             for (int i = 0; i < 3 && this.reportOffset.hasRemaining(); i++) {
+                //重试3次
                 try {
                     this.socketChannel.write(this.reportOffset);
                 } catch (IOException e) {
@@ -438,6 +442,7 @@ public class HAService {
             while (true) {
                 int diff = this.byteBufferRead.position() - this.dispatchPosition;
                 if (diff >= msgHeaderSize) {
+                    //指定位置去读，不会改变position
                     long masterPhyOffset = this.byteBufferRead.getLong(this.dispatchPosition);
                     int bodySize = this.byteBufferRead.getInt(this.dispatchPosition + 8);
 

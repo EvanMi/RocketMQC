@@ -359,9 +359,13 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     }
 
     private void prepareSharableHandlers() {
+        //TLS握手
         handshakeHandler = new HandshakeHandler(TlsSystemConfig.tlsMode);
+        //编码
         encoder = new NettyEncoder();
+        //连接
         connectionManageHandler = new NettyConnectManageHandler();
+        //处理业务
         serverHandler = new NettyServerHandler();
     }
 

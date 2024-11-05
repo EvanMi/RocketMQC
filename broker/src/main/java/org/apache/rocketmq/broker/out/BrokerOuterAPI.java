@@ -266,6 +266,7 @@ public class BrokerOuterAPI {
         final long brokerId,
         final TopicConfigSerializeWrapper topicConfigWrapper,
         final int timeoutMills) {
+
         final List<Boolean> changedList = new CopyOnWriteArrayList<>();
         List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
         if (nameServerAddressList != null && nameServerAddressList.size() > 0) {

@@ -20,13 +20,14 @@ package org.apache.rocketmq.filter.util;
 import com.google.common.hash.Hashing;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Simple implement of bloom filter.
  */
 public class BloomFilter {
 
-    public static final Charset UTF_8 = Charset.forName("UTF-8");
+    public static final Charset UTF_8 = StandardCharsets.UTF_8;
 
     // as error rate, 10/100 = 0.1
     private int f = 10;
@@ -64,9 +65,9 @@ public class BloomFilter {
         this.f = f;
         this.n = n;
 
-        // set p = e^(-kn/m)
-        // f = (1 - p)^k = e^(kln(1-p))
-        // when p = 0.5, k = ln2 * (m/n), f = (1/2)^k = (0.618)^(m/n)
+        // set p = e^(-kn/m) ~ （1 - 1/m)^kn
+        // errorRate = (1 - p)^k = e^(kln(1-p))
+        // when p = 0.5, k =  (m/n) * ln2, errorRate = (1/2)^k     = (0.618)^(m/n) 看不懂
         double errorRate = f / 100.0;
         this.k = (int) Math.ceil(logMN(0.5, errorRate));
 
@@ -74,7 +75,7 @@ public class BloomFilter {
             throw new IllegalArgumentException("Hash function num is less than 1, maybe you should change the value of error rate or bit num!");
         }
 
-        // m >= n*log2(1/f)*log2(e)
+        // m >= n*log2(1/errorRate)*log2(e)
         this.m = (int) Math.ceil(this.n * logMN(2, 1 / errorRate) * logMN(2, Math.E));
         // m%8 = 0
         this.m = (int) (Byte.SIZE * Math.ceil(this.m / (Byte.SIZE * 1.0)));

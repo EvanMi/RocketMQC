@@ -74,7 +74,7 @@ public class RocketmqLog4j2Appender extends AbstractAppender {
         boolean ignoreExceptions, String nameServerAddress, String producerGroup,
         String topic, String tag) {
         super(name, filter, layout, ignoreExceptions);
-        this.producer = producer;
+        //this.producer = producer;
         this.topic = topic;
         this.tag = tag;
         this.nameServerAddress = nameServerAddress;

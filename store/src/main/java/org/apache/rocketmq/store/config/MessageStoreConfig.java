@@ -160,6 +160,7 @@ public class MessageStoreConfig {
         this.debugLockEnable = debugLockEnable;
     }
 
+    //是否开启消息复制
     public boolean isDuplicationEnable() {
         return duplicationEnable;
     }

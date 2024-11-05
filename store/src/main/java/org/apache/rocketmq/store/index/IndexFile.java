@@ -45,6 +45,7 @@ public class IndexFile {
     private final IndexHeader indexHeader;
 
     public IndexFile(final String fileName, final int hashSlotNum, final int indexNum,
+        //当有前一个问文件的时候，这两个值记录的是前一个文件的最后的物理便宜，和时间戳
         final long endPhyOffset, final long endTimestamp) throws IOException {
         int fileTotalSize =
             IndexHeader.INDEX_HEADER_SIZE + (hashSlotNum * hashSlotSize) + (indexNum * indexSize);
@@ -96,6 +97,7 @@ public class IndexFile {
 
     public boolean putKey(final String key, final long phyOffset, final long storeTimestamp) {
         if (this.indexHeader.getIndexCount() < this.indexNum) {
+            //hash
             int keyHash = indexKeyHashMethod(key);
             int slotPos = keyHash % this.hashSlotNum;
             int absSlotPos = IndexHeader.INDEX_HEADER_SIZE + slotPos * hashSlotSize;

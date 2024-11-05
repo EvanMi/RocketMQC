@@ -45,6 +45,7 @@ public class ConsumeQueue {
     private final MappedFileQueue mappedFileQueue;
     private final String topic;
     private final int queueId;
+    //文件中所对应的一个20个字节的索引信息
     private final ByteBuffer byteBufferIndex;
 
     private final String storePath;
@@ -97,7 +98,7 @@ public class ConsumeQueue {
     public void recover() {
         final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
         if (!mappedFiles.isEmpty()) {
-
+            //为什么是从倒数第三个开始？因为创建mappedFile的服务会创建 next nextnext这两个文件
             int index = mappedFiles.size() - 3;
             if (index < 0)
                 index = 0;
@@ -340,7 +341,9 @@ public class ConsumeQueue {
     }
 
     public int deleteExpiredFile(long offset) {
+        //首先删除所有最大的offset都小于offset的文件
         int cnt = this.mappedFileQueue.deleteExpiredFileByOffset(offset, CQ_STORE_UNIT_SIZE);
+        //然后针对删除后剩余文件的第一个文件，把第一个文件中小于offset的数据也跳过
         this.correctMinOffset(offset);
         return cnt;
     }
@@ -450,7 +453,11 @@ public class ConsumeQueue {
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(expectLogicOffset);
         if (mappedFile != null) {
 
-            if (mappedFile.isFirstCreateInQueue() && cqOffset != 0 && mappedFile.getWrotePosition() == 0) {
+            if (mappedFile.isFirstCreateInQueue()
+                    && mappedFile.getWrotePosition() == 0 //共同决定这是第一个文件，并且没有被写过
+
+                    && cqOffset != 0
+                    ) {
                 this.minLogicOffset = expectLogicOffset;
                 this.mappedFileQueue.setFlushedWhere(expectLogicOffset);
                 this.mappedFileQueue.setCommittedWhere(expectLogicOffset);
@@ -459,6 +466,7 @@ public class ConsumeQueue {
                     + mappedFile.getWrotePosition());
             }
 
+            //cq代表consumer queue
             if (cqOffset != 0) {
                 long currentLogicOffset = mappedFile.getWrotePosition() + mappedFile.getFileFromOffset();
 
@@ -468,6 +476,7 @@ public class ConsumeQueue {
                     return true;
                 }
 
+                //cqOffset代表的是上一次写入unit的开始位置，那么加上CQ_STORE_UNIT_SIZE就是currentLogicOffset，即要写入数据的位置
                 if (expectLogicOffset != currentLogicOffset) {
                     LOG_ERROR.warn(
                         "[BUG]logic queue order maybe wrong, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
@@ -532,6 +541,7 @@ public class ConsumeQueue {
         this.minLogicOffset = minLogicOffset;
     }
 
+    //获取下一个文件的起始位置
     public long rollNextFile(final long index) {
         int mappedFileSize = this.mappedFileSize;
         int totalUnitsInFile = mappedFileSize / CQ_STORE_UNIT_SIZE;

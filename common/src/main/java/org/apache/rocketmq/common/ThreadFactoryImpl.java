@@ -20,6 +20,7 @@ package org.apache.rocketmq.common;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 
+// TODO: 2024/1/16 这个可以作为一个示例
 public class ThreadFactoryImpl implements ThreadFactory {
     private final AtomicLong threadIndex = new AtomicLong(0);
     private final String threadNamePrefix;
